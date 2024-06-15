@@ -1,0 +1,120 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    padding: 20px;
+}
+.form-container {
+    display: flex;
+    flex-wrap: wrap;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+.form-container h1 {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.order-details {
+    flex: 1;
+    margin-right: 20px;
+}
+.order-details .product {
+    background-color: white;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+}
+.order-details .product img {
+    max-width: 100px;
+    margin-right: 20px;
+}
+.order-details .product .product-details {
+    flex: 1;
+}
+.order-details .product h2 {
+    margin: 10px 0;
+}
+.order-details .product p {
+    margin: 5px 0;
+}
+.order-details .product .product-price {
+    font-weight: bold;
+}
+.order-details .quantity-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+.order-details .quantity-container label {
+    margin-right: 10px;
+}
+.user-info {
+    flex: 1;
+}
+.user-info label {
+    display: block;
+    margin: 10px 0 5px;
+}
+.user-info input, .user-info textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+.discount-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+.discount-container input {
+    flex: 1;
+}
+.discount-container button {
+    margin-left: 10px;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.discount-container button:hover {
+    background-color: #45a049;
+}
+.place-order {
+    width: 100%;
+    padding: 10px;
+    background-color: purple;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+.place-order:hover {
+    background-color: #800080;
+}
+.place-order-icon {
+    margin-right: 10px;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+    .form-container {
+        display: flex;
+        justify-content: space-between;
+    }
+    .order-details {
+        flex: 1;
+        margin-right: 20px;
+    }
+    .user-info {
+        flex: 1;
+    }
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Summary</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        padding: 20px;
+    }
+    .order-summary {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .order-summary h1 {
+        margin-bottom: 20px;
+    }
+    .product {
+        background-color: white;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .product img {
+        max-width: 100px;
+    }
+    .product h2 {
+        margin: 10px 0;
+    }
+    .product p {
+        margin: 5px 0;
+    }
+    .product-price {
+        font-weight: bold;
+    }
+    .total {
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-top: 20px;
+    }
+    .order-id {
+        font-weight: bold;
+        margin-top: 20px;
+    }
+    .additional-notes, .order-time {
+        margin-top: 20px;
+    }
+    .continue-shopping {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    .continue-shopping i {
+        margin-right: 10px;
+    }
+</style>
+</head>
+<body>
+<div class="order-summary">
+    <h1>Order Summary</h1>
+    <div id="order-details"></div>
+    <div class="total" id="total-price"></div>
+    <div class="additional-notes" id="additional-notes"></div>
+    <div class="order-time" id="order-time"></div>
+    <div class="order-id" id="order-id"></div>
+    <a href="store.html" class="continue-shopping"><i class="fas fa-shopping-cart"></i>Continue Shopping</a>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+    // Initialize Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyCkspIIUM-efZV11dn81hBIS5RdcjsNYYk",
+        authDomain: "contactform-c4a4e.firebaseapp.com",
+        databaseURL: "https://contactform-c4a4e-default-rtdb.firebaseio.com",
+        projectId: "contactform-c4a4e",
+        storageBucket: "contactform-c4a4e.appspot.com",
+        messagingSenderId: "486536765007",
+        appId: "1:486536765007:web:734d6d0b4638432087543a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const rtdb = firebase.database();
+
+    // Check if user is logged in
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            window.location.href = 'login.html';
+        } else {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('orderId');
+            document.getElementById('order-id').textContent = `Order ID: ${orderId}`;
+            loadOrderDetails(orderId);
+        }
+    });
+
+    function loadOrderDetails(orderId) {
+        const orderDetails = document.getElementById('order-details');
+        const totalPriceElement = document.getElementById('total-price');
+        const additionalNotesElement = document.getElementById('additional-notes');
+        const orderTimeElement = document.getElementById('order-time');
+        rtdb.ref('orders/' + orderId).get().then(snapshot => {
+            const data = snapshot.val();
+            let total = 0;
+            if (data) {
+                additionalNotesElement.textContent = `Additional Notes: ${data.notes || 'None'}`;
+                const orderDate = new Date(data.date);
+                orderTimeElement.textContent = `Order Placed: ${orderDate.toLocaleDateString()} at ${orderDate.toLocaleTimeString()}`;
+                if (data.items) {
+                    data.items.forEach(product => {
+                        const productElement = document.createElement('div');
+                        productElement.classList.add('product');
+                        const totalProductPrice = product.price * product.quantity;
+                        productElement.innerHTML = `
+                            <img src="${product.image}" alt="${product.name}">
+                            <div>
+                                <h2>${product.name}</h2>
+                                <p>Quantity: ${product.quantity}</p>
+                                <p class="product-price">Total Price: $${totalProductPrice.toFixed(2)}</p>
+                            </div>
+                        `;
+                        orderDetails.appendChild(productElement);
+                        total += totalProductPrice;
+                    });
+                    totalPriceElement.textContent = `Total: $${total.toFixed(2)}`;
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order History</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        padding: 20px;
+    }
+    .order {
+        background-color: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        opacity: 1;
+        transition: opacity 0.5s ease-in-out;
+    }
+    .hidden {
+        opacity: 0;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+    .order h2 {
+        margin: 0 0 10px;
+    }
+    .order p {
+        margin: 5px 0;
+    }
+    .product {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .product img {
+        max-width: 50px;
+        margin-right: 10px;
+        cursor: pointer;
+    }
+    .product h3 {
+        margin: 0;
+    }
+    .cancel-button {
+        padding: 5px 10px;
+        background-color: #ff3333;
+        color: white;
+        border: none;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    .filter-container {
+        margin-bottom: 20px;
+    }
+    .filter-container select {
+        padding: 10px;
+        font-size: 16px;
+    }
+    .no-orders {
+        display: none;
+        text-align: center;
+        font-size: 18px;
+        color: #ff3333;
+    }
+</style>
+</head>
+<body>
+<h1>Order History</h1>
+<div class="filter-container">
+    <label for="status-filter">Filter by Status:</label>
+    <select id="status-filter">
+        <option value="">All</option>
+        <option value="processing">Processing</option>
+        <option value="waiting to be shipped">Waiting to be Shipped</option>
+        <option value="shipped">Shipped</option>
+        <option value="in transit">In Transit</option>
+        <option value="delivered">Delivered</option>
+    </select>
+</div>
+<div id="order-container"></div>
+<p class="no-orders">No orders fit that category</p>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+    // Initialize Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyCkspIIUM-efZV11dn81hBIS5RdcjsNYYk",
+        authDomain: "contactform-c4a4e.firebaseapp.com",
+        databaseURL: "https://contactform-c4a4e-default-rtdb.firebaseio.com",
+        projectId: "contactform-c4a4e",
+        storageBucket: "contactform-c4a4e.appspot.com",
+        messagingSenderId: "486536765007",
+        appId: "1:486536765007:web:734d6d0b4638432087543a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const firestore = firebase.firestore();
+    const rtdb = firebase.database();
+
+    // Check if user is logged in
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            window.location.href = 'login.html';
+        } else {
+            loadOrderHistory(user.uid);
+        }
+    });
+
+    function loadOrderHistory(userId) {
+        const orderContainer = document.getElementById('order-container');
+        const noOrdersMessage = document.querySelector('.no-orders');
+        rtdb.ref(`orders/${userId}`).on('value', snapshot => {
+            orderContainer.innerHTML = '';
+            if (snapshot.exists()) {
+                snapshot.forEach(orderSnapshot => {
+                    const orderData = orderSnapshot.val();
+                    const orderElement = document.createElement('div');
+                    orderElement.classList.add('order');
+                    orderElement.dataset.status = orderData.status;
+
+                    let grandTotal = 0;
+                    let discountedTotal = 0;
+                    const itemsElement = document.createElement('div');
+                    Object.values(orderData.items).forEach(item => {
+                        grandTotal += item.price * item.quantity;
+                        discountedTotal += item.discountedPrice ? item.discountedPrice * item.quantity : item.price * item.quantity;
+                        const productElement = document.createElement('div');
+                        productElement.classList.add('product');
+                        productElement.innerHTML = `
+                            <img src="${item.image}" alt="${item.name}" onclick="fetchReviewUrl('${item.productId}')">
+                            <div>
+                                <h3>${item.name}</h3>
+                                <p>Quantity: ${item.quantity}</p>
+                                <p>Original Price: $${item.price.toFixed(2)}</p>
+                                ${item.discountedPrice ? `<p>Discounted Price: $${item.discountedPrice.toFixed(2)}</p>` : ''}
+                                <p>Total: $${((item.discountedPrice ? item.discountedPrice : item.price) * item.quantity).toFixed(2)}</p>
+                            </div>
+                        `;
+                        itemsElement.appendChild(productElement);
+                    });
+
+                    orderElement.innerHTML = `
+                        <h2>Order ID: ${orderSnapshot.key}</h2>
+                        ${itemsElement.outerHTML}
+                        <p>Status: ${orderData.status}</p>
+                        <p>Date Ordered: ${new Date(orderData.date).toLocaleString()}</p>
+                        <p>Email: ${orderData.email}</p>
+                        <p>Phone: ${orderData.phone}</p>
+                        <p>Address: ${orderData.address}</p>
+                        ${orderData.discountCode ? `<p>Discount Code: ${orderData.discountCode}</p>` : ''}
+                        <p>Original Total: $${grandTotal.toFixed(2)}</p>
+                        ${discountedTotal !== grandTotal ? `<p>Discounted Total: $${discountedTotal.toFixed(2)}</p>` : ''}
+                    `;
+
+                    // Fetch delivery date
+                    rtdb.ref(`orders/${userId}/${orderSnapshot.key}/DeliveryDate`).once('value').then(deliveryDateSnapshot => {
+                        const deliveryDate = deliveryDateSnapshot.val();
+                        if (deliveryDate) {
+                            const deliveryDateElement = document.createElement('p');
+                            deliveryDateElement.textContent = `Delivery Date: ${new Date(deliveryDate).toLocaleDateString()}`;
+                            orderElement.appendChild(deliveryDateElement);
+                        }
+
+                        // Cancel Button
+                        const cancelButton = document.createElement('button');
+                        cancelButton.textContent = 'Cancel';
+                        cancelButton.classList.add('cancel-button');
+
+                        // Check status to determine visibility of cancel button
+                        if (orderData.status === 'in transit' || orderData.status === 'delivered') {
+                            cancelButton.style.display = 'none'; // Hide cancel button
+                        }
+
+                        cancelButton.addEventListener('click', () => {
+                            window.location.href = `cancel.html?orderId=${orderSnapshot.key}`;
+                        });
+                        orderElement.appendChild(cancelButton);
+
+                        orderContainer.appendChild(orderElement);
+                    });
+                });
+
+                filterOrders();
+                noOrdersMessage.style.display = 'none';
+            } else {
+                noOrdersMessage.style.display = 'block';
+            }
+        });
+    }
+
+    function fetchReviewUrl(productId) {
+        firestore.collection('products').doc(productId).get().then(doc => {
+            if (doc.exists) {
+                const productData = doc.data();
+                if (productData.reviewUrl) {
+                    window.open(productData.reviewUrl, '_blank');
+                } else {
+                    console.log('Review URL not available for this product.');
+                }
+            } else {
+                console.log('Product not found.');
+            }
+        }).catch(error => {
+            console.error('Error fetching review URL:', error);
+        });
+    }
+
+    function filterOrders() {
+        const filter = document.getElementById('status-filter').value;
+        const orders = document.querySelectorAll('.order');
+        let visibleOrders = 0;
+        orders.forEach(order => {
+            if (filter === '' || order.dataset.status === filter) {
+                order.classList.remove('hidden');
+                visibleOrders++;
+            } else {
+                order.classList.add('hidden');
+            }
+        });
+        document.querySelector('.no-orders').style.display = visibleOrders > 0 ? 'none' : 'block';
+    }
+
+    document.getElementById('status-filter').addEventListener('change', filterOrders);
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .notification {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification p {
+            margin: 0;
+        }
+        .notification button {
+            padding: 5px 10px;
+            background-color: #ff3333;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Notifications</h1>
+    <div id="notifications-container"></div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script>
+        // Initialize Firebase
+     const firebaseConfig = {
+     apiKey: "AIzaSyCkspIIUM-efZV11dn81hBIS5RdcjsNYYk",
+     authDomain: "contactform-c4a4e.firebaseapp.com",
+     databaseURL: "https://contactform-c4a4e-default-rtdb.firebaseio.com",
+     projectId: "contactform-c4a4e",
+     storageBucket: "contactform-c4a4e.appspot.com",
+     messagingSenderId: "486536765007",
+     appId: "1:486536765007:web:734d6d0b4638432087543a"
+     };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const rtdb = firebase.database();
+        const auth = firebase.auth();
+
+        // Check if user is logged in
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // Function to add a new notification
+        function addNotification(userId, message) {
+            const notificationsRef = rtdb.ref(`notifications/${userId}`);
+            const newNotificationRef = notificationsRef.push();
+            newNotificationRef.set({
+                message: message,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+
+        // Function to handle successful order placement
+        function handleOrderPlacement(userId, orderDetails) {
+            const message = `You have successfully placed an order.<br>
+                            <strong>Order Items:</strong> ${orderDetails.items}<br>
+                            <strong>Quantities:</strong> ${orderDetails.quantities}<br>
+                            <strong>Your Order ID is:</strong> ${orderDetails.orderId}`;
+
+            addNotification(userId, message);
+        }
+
+        // Example function to simulate order placement
+        function simulateOrderPlacement() {
+            const userId = auth.currentUser.uid;
+            const orderDetails = {
+                items: "Phone, Laptop", // Replace with actual items list
+                quantities: "1, 2", // Replace with actual quantities list
+                orderId: "ABC123" // Replace with actual order ID
+            };
+
+            handleOrderPlacement(userId, orderDetails);
+        }
+
+        // Simulate order placement (you can replace this with actual logic when an order is placed)
+        simulateOrderPlacement();
+
+        // Real-time listener for notifications
+        function loadNotifications(userId) {
+            const notificationsContainer = document.getElementById('notifications-container');
+            rtdb.ref(`notifications/${userId}`).orderByChild('timestamp').on('value', snapshot => {
+                notificationsContainer.innerHTML = '';
+                snapshot.forEach(childSnapshot => {
+                    const notification = childSnapshot.val();
+                    const notificationElement = document.createElement('div');
+                    notificationElement.classList.add('notification');
+                    notificationElement.innerHTML = `
+                        <p>${notification.message}</p>
+                        <div>
+                            <button onclick="deleteNotification('${childSnapshot.key}')">Delete</button>
+                        </div>
+                    `;
+                    notificationsContainer.appendChild(notificationElement);
+                });
+            });
+        }
+
+        // Function to delete a notification
+        function deleteNotification(notificationId) {
+            const userId = auth.currentUser.uid;
+            rtdb.ref(`notifications/${userId}/${notificationId}`).remove().then(() => {
+                console.log('Notification deleted');
+            }).catch(error => {
+                console.error('Error deleting notification:', error);
+            });
+        }
+
+        // Load notifications when the page loads
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                loadNotifications(user.uid);
+            }
+        });
+    </script>
+</body>
+</html>
