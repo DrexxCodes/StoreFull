@@ -87,7 +87,7 @@
 
         auth.signInWithEmailAndPassword(email, password)
             .then(() => {
-                window.location.href = "store.html";
+                window.location.href = "index.htm";
             })
             .catch(error => {
                 document.getElementById('error-message').innerText = error.message;
@@ -104,7 +104,7 @@
                         alert('Verification email sent. Please check your inbox.');
                     });
                 } else {
-                    window.location.href = "store.html";
+                    window.location.href = "index.htm";
                 }
             })
             .catch(error => {
